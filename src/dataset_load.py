@@ -71,13 +71,11 @@ def loaddata(fileName):
                     count2+=1
 
                 elif count1>19999 and count2>19999:
-                    #print("HI")
                     flag=1 
 
             else:
                 #Test dataset
                 if label==0 and count3<5001:
-                    #print("H")
                     xdataT.append([float(dur), protoDict[proto], int(Sport), int(Dport), Sip, Dip, int(totP), int(totB), stateDict[state]])
                     ydataT.append(label)
                     count3+=1
