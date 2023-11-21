@@ -8,6 +8,7 @@ import time
 import pickle
 import os
 import glob
+from datetime import datetime
 
 #global variable
 #file list hardcoded
@@ -39,7 +40,9 @@ def next_model(curr, model_name):
     print(curr)
     if(curr < len(files)):
         file_path = files[curr]
-        print(f"Processing {file_path}...")
+        # prints the time the process starts
+        current_time = datetime.now()
+        print(f"Processing {file_path}... Current time: " + current_time.strftime("%Y-%m-%d %H:%M:%S"))
         X, Y, XT, YT = load_data(file_path)
         loadModel(model_name, X, Y, XT, YT, curr)
     else:
