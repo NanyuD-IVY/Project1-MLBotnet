@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 from sklearn.model_selection import train_test_split
 
-def load_and_process_file(file_path):
+def load_data_from_file(file_path):
     """function to load the training and the test dataset"""
 
     with open(file_path, 'r') as file:
@@ -12,6 +12,8 @@ def load_and_process_file(file_path):
 
         data = []
         labels = []
+
+        print(f"start processing,")
 
         # dictionary to convert protocols and state to integers
         protoDict = {
@@ -51,24 +53,11 @@ def load_and_process_file(file_path):
                     Sip, Dip, int(totP), int(totB), stateDict.get(state, -1)
                 ])
                 labels.append(label)
+
             except ValueError:
                 continue
-
-        # Split the data into 70% training and 30% testing
-        xdata, xdataT, ydata, ydataT = train_test_split(
-            data, labels, test_size=0.30, stratify=labels, random_state=42
-        )
-
-        #give it a unique name
-        base_name = os.path.basename(file_path)
-        pickle_file_name = f"{base_name}.pickle"
-        pickle_file_path = os.path.join('../dataset/', pickle_file_name)
-        
-        # Save the processed data to the pickle file
-        with open(pickle_file_path, 'wb') as pickle_file:
-            pickle.dump([np.array(xdata), np.array(ydata), np.array(xdataT), np.array(ydataT)], pickle_file)
-
-        print(f"Processed {file_path} and saved to {pickle_file_path}")
+        print(f"finish processing a file")
+        return data, labels
 
 #create a folder called dataset if it does not exist
 def create_dataset_folder():
@@ -87,14 +76,33 @@ def create_dataset_folder():
     else:
         print(f"Folder '{folder_name}' already exists at path: {folder_path}")
 
-def process_all_files(folder_path):
-    # Find all .binetflow files in the given folder
+def process_all_files_and_split(folder_path):
+    """Function to process all .binetflow files and split the combined data."""
+    all_data = []
+    all_labels = []
+
+    # Process each file and merge the data
     for file_path in glob.glob(os.path.join(folder_path, '*.binetflow')):
-        load_and_process_file(file_path)
+        data, labels = load_data_from_file(file_path)
+        all_data.extend(data)
+        all_labels.extend(labels)
+
+    # Split the combined data into training and testing sets
+    xdata, xdataT, ydata, ydataT = train_test_split(
+        all_data, all_labels, test_size=0.30, stratify=all_labels, random_state=42
+    )
+
+    # Save the processed data
+    pickle_file_path = '../dataset/combined_data.pickle'
+    with open(pickle_file_path, 'wb') as pickle_file:
+        pickle.dump([np.array(xdata), np.array(ydata), np.array(xdataT), np.array(ydataT)], pickle_file)
+
+    print(f"Processed all files and saved combined data to {pickle_file_path}")
+
 
 if __name__ == "__main__":
     folder_path = "../../../datasets"
     if os.path.exists(folder_path):
-        process_all_files(folder_path)
+        process_all_files_and_split(folder_path)
     else:
         print("The folder path does not exist. Please check and try again.")

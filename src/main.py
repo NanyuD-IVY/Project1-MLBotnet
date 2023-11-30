@@ -1,5 +1,3 @@
-# This code has been modified from the original work by Nagabhushan S Baddi (InStep Intern at Infosys Ltd.)
-
 #import the modules
 import dataset_load
 import models
@@ -12,7 +10,9 @@ from datetime import datetime
 
 #global variable
 #file list hardcoded
+#files = ['../dataset\\combined_data.pickle']
 files = ['../dataset\\capture20110810.binetflow.pickle', '../dataset\\capture20110811.binetflow.pickle', '../dataset\\capture20110812.binetflow.pickle', '../dataset\\capture20110815-2.binetflow.pickle', '../dataset\\capture20110815-3.binetflow.pickle', '../dataset\\capture20110815.binetflow.pickle', '../dataset\\capture20110816-2.binetflow.pickle', '../dataset\\capture20110816-3.binetflow.pickle', '../dataset\\capture20110816.binetflow.pickle', '../dataset\\capture20110817.binetflow.pickle', '../dataset\\capture20110818-2.binetflow.pickle', '../dataset\\capture20110819.binetflow.pickle']
+#files = ['../dataset\\capture20110816-2.binetflow.pickle']
 model_name = ""
 
 def load_data(file_path):

@@ -5,6 +5,8 @@ from sklearn.tree import *
 import threading
 import numpy as np
 import main
+import os
+import json
 
 #compare
 from sklearn.metrics import confusion_matrix
@@ -21,32 +23,82 @@ from tensorflow.keras.layers import Dense, LSTM, Dropout
 #random forest
 from sklearn.ensemble import RandomForestClassifier
 
+#excel
+import pandas as pd
+from openpyxl import load_workbook
+
+#plotting
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve
+
+#global variable
+result_path = 'result.xlsx'
+
 def finish_model_running(curr, model_name):
     main.next_model(curr, model_name)
 
-def print_metrics(YT, sd, y_scores=None):
+def print_metrics(YT, sd, y_scores=None, model_name=''):
     tn, fp, fn, tp = confusion_matrix(YT, sd).ravel()
-    print("True Positives (TP):", tp)
-    print("True Negatives (TN):", tn)
-    print("False Positives (FP):", fp)
-    print("False Negatives (FN):", fn)
-    #print("Precision:", precision_score(YT, sd))
-    #print("Recall:", recall_score(YT, sd))
-    print("F1 Score:", f1_score(YT, sd))
-    print("Balanced Accuracy:", balanced_accuracy_score(YT, sd))
-    print("Geometric Mean:", geometric_mean_score(YT, sd))
-    print("Matthews Correlation Coefficient:", matthews_corrcoef(YT, sd))
+    
+    # Calculating metrics
+    metrics = {
+        'Model': model_name,
+        'True Positives (TP)': tp,
+        'True Negatives (TN)': tn,
+        'False Positives (FP)': fp,
+        'False Negatives (FN)': fn,
+        'Recall': recall_score(YT, sd),
+        'F1 Score': f1_score(YT, sd),
+        'Balanced Accuracy': balanced_accuracy_score(YT, sd),
+        'Geometric Mean': geometric_mean_score(YT, sd),
+        'Matthews Correlation Coefficient': matthews_corrcoef(YT, sd),
+        'ROC-AUC Score': None,
+        'Precision-Recall AUC': None
+    }
 
-    # For LSTM as it gives probalistic output
-    if y_scores is not None:
-        print("ROC-AUC Score:", roc_auc_score(YT, y_scores))
-        
-        # Precision-Recall AUC
-        precision, recall, _ = precision_recall_curve(YT, y_scores)
-        print("Precision-Recall AUC:", auc(recall, precision))
+    metrics['ROC-AUC Score'] = roc_auc_score(YT, y_scores)
+    
+    precision, recall, _ = precision_recall_curve(YT, y_scores)
+    metrics['Precision-Recall AUC'] = auc(recall, precision)
 
-    print('-' * 100)
+    # Print the metrics
+    for key, value in metrics.items():
+        print(f"{key}: {value}")
 
+    # Convert the dictionary to a DataFrame
+    result_df = pd.DataFrame([metrics])
+
+    # Append to Excel file, creating if it does not exist
+    if os.path.exists(result_path):
+        with pd.ExcelWriter(result_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+            result_df.to_excel(writer, index=False, header=False, startrow=writer.sheets['Sheet1'].max_row)
+    else:
+        result_df.to_excel(result_path, index=False)
+
+    fpr, tpr, _ = roc_curve(YT, y_scores)
+    roc_auc = roc_auc_score(YT, y_scores)
+    # Prepare plotting plotting data for JSON
+    new_data = {
+        'model_name': model_name,
+        'fpr': fpr.tolist(),  # Convert numpy arrays to lists for JSON serialization
+        'tpr': tpr.tolist(),
+        'roc_auc': roc_auc
+    }
+
+    # Read existing data and append new data
+    output_file = model_name + "_plot.json"
+    data_to_append = []
+    
+    if os.path.exists(output_file):
+        with open(output_file, 'r') as file:
+            data_to_append = json.load(file)
+
+    # Append new data under the model name key
+    data_to_append.append(new_data)
+
+    # Write updated data to JSON file
+    with open(output_file, 'w') as file:
+        json.dump(data_to_append, file, indent=4)
 
 class DTModel(threading.Thread):
     """Threaded Decision Tree Model"""
@@ -81,7 +133,8 @@ class DTModel(threading.Thread):
         #print('=' * 100)
         #if self.accLabel: self.accLabel.set("Accuracy of Decision Tree Model: %.2f" % acc + ' %')
 
-        print_metrics(YT, sd, y_scores)
+        print_metrics(YT, sd, y_scores, 'decision tree')
+        
         finish_model_running(self.curr + 1, "Decision Tree")
 
 
@@ -118,7 +171,7 @@ class RFModel(threading.Thread):
         #print('=' * 100)
         #if self.accLabel: self.accLabel.set("Accuracy of Random Forest Model: %.2f" % acc + ' %')
 
-        print_metrics(YT, sd, y_scores)
+        print_metrics(YT, sd, y_scores, 'rf')
         finish_model_running(self.curr + 1, "Random Forest")
 
 
@@ -138,7 +191,7 @@ class LSTMModel(threading.Thread):
         XT = self.XT.reshape((self.XT.shape[0], self.XT.shape[1], 1))
 
         model = Sequential()
-        model.add(LSTM(50, input_shape=(X.shape[1], 1)))
+        model.add(LSTM(30, input_shape=(X.shape[1], 1)))
         model.add(Dense(1, activation='sigmoid'))
 
         model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
@@ -150,8 +203,8 @@ class LSTMModel(threading.Thread):
         #if self.accLabel: self.accLabel.set("Accuracy of LSTM Model: %.2f" % (acc * 100) + " %")
       
         # Getting probabilistic outputs for metrics
-        y_scores = model.predict(XT).flatten()
+        y_scores = model.predict(XT, verbose = 0).flatten()
         predictions = (y_scores > 0.5).astype("int32")
 
-        print_metrics(self.YT, predictions, y_scores)
+        print_metrics(self.YT, predictions, y_scores, 'lstm')
         finish_model_running(self.curr + 1, "LSTM")
