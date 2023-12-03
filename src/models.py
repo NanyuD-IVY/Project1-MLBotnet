@@ -86,7 +86,7 @@ def print_metrics(YT, sd, y_scores=None, model_name=''):
     }
 
     # Read existing data and append new data
-    output_file = model_name + "_plot.json"
+    output_file = "plotData\\" + model_name + "_plot.json"
     data_to_append = []
     
     if os.path.exists(output_file):
@@ -127,12 +127,6 @@ class DTModel(threading.Thread):
         sd = dtModel.predict(XT)
         y_scores = dtModel.predict_proba(XT)[:, 1]  # Probability of positive class
 
-
-        #acc = (sum(sd == YT) / len(YT) * 100)
-        #print("Accuracy of Decision Tree Model: %.2f" % acc + ' %')
-        #print('=' * 100)
-        #if self.accLabel: self.accLabel.set("Accuracy of Decision Tree Model: %.2f" % acc + ' %')
-
         print_metrics(YT, sd, y_scores, 'decision tree')
         
         finish_model_running(self.curr + 1, "Decision Tree")
@@ -166,11 +160,6 @@ class RFModel(threading.Thread):
         sd = rfModel.predict(XT)
         y_scores = rfModel.predict_proba(XT)[:, 1]  # Probability of positive class
 
-        #acc = (sum(sd == YT) / len(YT) * 100)
-        #print("Accuracy of Random Forest Model: %.2f" % acc + ' %')
-        #print('=' * 100)
-        #if self.accLabel: self.accLabel.set("Accuracy of Random Forest Model: %.2f" % acc + ' %')
-
         print_metrics(YT, sd, y_scores, 'rf')
         finish_model_running(self.curr + 1, "Random Forest")
 
@@ -191,17 +180,12 @@ class LSTMModel(threading.Thread):
         XT = self.XT.reshape((self.XT.shape[0], self.XT.shape[1], 1))
 
         model = Sequential()
-        model.add(LSTM(30, input_shape=(X.shape[1], 1)))
+        model.add(LSTM(50, input_shape=(X.shape[1], 1)))
         model.add(Dense(1, activation='sigmoid'))
 
         model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
         model.fit(X, self.Y, epochs=10, batch_size=32, verbose=0)
-    
-        #acc = model.evaluate(XT, self.YT, verbose=0)[1]
-        #print("Accuracy of LSTM Model: %.2f" % (acc * 100) + " %")
-        #print('=' * 100)
-        #if self.accLabel: self.accLabel.set("Accuracy of LSTM Model: %.2f" % (acc * 100) + " %")
-      
+
         # Getting probabilistic outputs for metrics
         y_scores = model.predict(XT, verbose = 0).flatten()
         predictions = (y_scores > 0.5).astype("int32")

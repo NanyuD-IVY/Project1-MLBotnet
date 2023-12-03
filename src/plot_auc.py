@@ -27,5 +27,5 @@ def plot_roc_from_json(json_file_path, output_folder='roc_plots'):
 
 
 if __name__ == "__main__":
-    json_file_path = 'decision_tree_plot.json'  # Update this path to your JSON file
+    json_file_path = 'plotData\\lstm50unit_plot.json'  # Update this path to your JSON file
     plot_roc_from_json(json_file_path)
